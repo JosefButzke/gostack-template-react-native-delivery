@@ -54,27 +54,38 @@ const Dashboard: React.FC = () => {
   const navigation = useNavigation();
 
   async function handleNavigate(id: number): Promise<void> {
-    // Navigate do ProductDetails page
+    navigation.navigate('FoodDetails', { id });
   }
 
   useEffect(() => {
-    async function loadFoods(): Promise<void> {
-      // Load Foods from API
-    }
-
-    loadFoods();
-  }, [selectedCategory, searchValue]);
-
-  useEffect(() => {
     async function loadCategories(): Promise<void> {
-      // Load categories from API
+      const response = await api.get('/categories');
+      setCategories(response.data);
     }
 
     loadCategories();
   }, []);
 
+  useEffect(() => {
+    async function loadFoods(): Promise<void> {
+      const filterByName = `name_like=${searchValue}`;
+      const filterByCategory = `category=${selectedCategory}`;
+      // const response = await api.get<Food[]>(`/foods?name_like=${searchValue}`);
+
+      const response = await api.get<Food[]>(
+        `/foods?name_like=${searchValue}${
+        searchValue && selectedCategory ? '&' : ''
+        }${selectedCategory ? `category_like=${selectedCategory}` : ''}`,
+      );
+
+      setFoods(response.data);
+    }
+
+    loadFoods();
+  }, [selectedCategory, searchValue]);
+
   function handleSelectCategory(id: number): void {
-    // Select / deselect category
+    setSelectedCategory(id);
   }
 
   return (
@@ -141,7 +152,7 @@ const Dashboard: React.FC = () => {
                 <FoodContent>
                   <FoodTitle>{food.name}</FoodTitle>
                   <FoodDescription>{food.description}</FoodDescription>
-                  <FoodPricing>{food.formattedPrice}</FoodPricing>
+                  <FoodPricing>{formatValue(food.price)}</FoodPricing>
                 </FoodContent>
               </Food>
             ))}
