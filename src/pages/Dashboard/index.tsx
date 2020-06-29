@@ -54,38 +54,56 @@ const Dashboard: React.FC = () => {
   const navigation = useNavigation();
 
   async function handleNavigate(id: number): Promise<void> {
+    // Navigate do ProductDetails page
     navigation.navigate('FoodDetails', { id });
   }
 
   useEffect(() => {
-    async function loadCategories(): Promise<void> {
-      const response = await api.get('/categories');
-      setCategories(response.data);
-    }
-
-    loadCategories();
-  }, []);
-
-  useEffect(() => {
     async function loadFoods(): Promise<void> {
-      const filterByName = `name_like=${searchValue}`;
-      const filterByCategory = `category_like=${selectedCategory}`;
-      // const response = await api.get<Food[]>(`/foods?name_like=${searchValue}`);
+      // Load Foods from API
+      try {
+        const { data } = await api.get<Food[]>('foods', {
+          params: {
+            category_like: selectedCategory,
+            name_like: searchValue,
+          },
+        });
 
-      const filter = `${searchValue ? filterByName : ''}${
-        searchValue && selectedCategory ? '&' : ''
-        }${selectedCategory ? filterByCategory : ''}`;
+        const dataFormatted = data.map(food => {
+          return {
+            ...food,
+            formattedPrice: formatValue(food.price),
+          };
+        });
 
-      const response = await api.get<Food[]>(`/foods?${filter}`);
-
-      setFoods(response.data);
+        setFoods(dataFormatted);
+      } catch (err) {
+        console.log(err);
+      }
     }
 
     loadFoods();
   }, [selectedCategory, searchValue]);
 
-  function handleSelectCategory(id: number): void {
-    setSelectedCategory(id);
+  useEffect(() => {
+    async function loadCategories(): Promise<void> {
+      // Load categories from API
+      try {
+        const response = await api.get<Category[]>('categories');
+        setCategories(response.data);
+      } catch (err) {
+        console.log(err);
+      }
+    }
+
+    loadCategories();
+  }, []);
+
+  function handleSelectCategory(id: number) {
+    // Select / deselect category
+    selectedCategory !== id
+      ? setSelectedCategory(id)
+      : setSelectedCategory(undefined);
   }
 
   return (
@@ -152,7 +170,7 @@ const Dashboard: React.FC = () => {
                 <FoodContent>
                   <FoodTitle>{food.name}</FoodTitle>
                   <FoodDescription>{food.description}</FoodDescription>
-                  <FoodPricing>{formatValue(food.price)}</FoodPricing>
+                  <FoodPricing>{food.formattedPrice}</FoodPricing>
                 </FoodContent>
               </Food>
             ))}
